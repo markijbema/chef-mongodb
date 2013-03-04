@@ -7,7 +7,7 @@
 #       Markus Korn <markus.korn@edelight.de> (original)
 #       Erik Kristensen <erik@erikkristensen.com> (complete rewrite of configure_replicaset)
 #
-# The configure_replicaset did not work for more than two nodes, it was a 
+# The configure_replicaset did not work for more than two nodes, it was a
 # complete rewrite to  allow for N + 1 mongo nodes in a replicaset.
 #
 # TODO LIST
@@ -52,7 +52,7 @@ class Chef::ResourceDefinitionList::MongoDB
     sleep(10)
 
     # Connect to existing node, check if replicaset is enabled?! Then proceed
-    begin      
+    begin
       connection = Mongo::ReplSetConnection.new( host_members )
     rescue Mongo::ConnectionFailure => error_code
       if error_code.to_s().include?('Cannot connect to a replica set')
@@ -89,7 +89,7 @@ class Chef::ResourceDefinitionList::MongoDB
           abort("Unable to connect to configure replicaset, aborting ...")
         end
       rescue => error_code
-        Chef::Log.warn("Unable to connect to #{host_members.first}. #{error_code}")        
+        Chef::Log.warn("Unable to connect to #{host_members.first}. #{error_code}")
         return
       end
 
@@ -115,7 +115,7 @@ class Chef::ResourceDefinitionList::MongoDB
     else
       Chef::Log.info("We are a replica set ... ensuring the primary is up and running")
       result = connection['admin'].command({:isMaster => 1}, :check_response => false)
-      
+
       if result.fetch("ok", nil) == 1 and result.fetch("ismaster", nil) == true
         Chef::Log.info("We are connected to the primary, continuing ...")
       else
@@ -217,14 +217,14 @@ class Chef::ResourceDefinitionList::MongoDB
       end
     end until retries > 4
   end
-  
+
   def self.configure_shards(node, shard_nodes)
     # lazy require, to move loading this modules to runtime of the cookbook
     require 'rubygems'
     require 'mongo'
-    
+
     shard_groups = Hash.new{|h,k| h[k] = []}
-    
+
     shard_nodes.each do |n|
       if n['recipes'].include?('mongodb::replicaset')
         key = "rs_#{n['mongodb']['shard_name']}"
@@ -234,7 +234,7 @@ class Chef::ResourceDefinitionList::MongoDB
       shard_groups[key] << "#{n['fqdn']}:#{n['mongodb']['port']}"
     end
     Chef::Log.info(shard_groups.inspect)
-    
+
     shard_members = []
     shard_groups.each do |name, members|
       if name == "_single"
@@ -244,16 +244,16 @@ class Chef::ResourceDefinitionList::MongoDB
       end
     end
     Chef::Log.info(shard_members.inspect)
-    
+
     begin
       connection = Mongo::Connection.new('localhost', node['mongodb']['port'], :op_timeout => 5)
     rescue Exception => e
       Chef::Log.warn("Could not connect to database: 'localhost:#{node['mongodb']['port']}', reason #{e}")
       return
     end
-    
+
     admin = connection['admin']
-    
+
     shard_members.each do |shard|
       cmd = BSON::OrderedHash.new
       cmd['addShard'] = shard
@@ -265,24 +265,24 @@ class Chef::ResourceDefinitionList::MongoDB
       Chef::Log.info(result.inspect)
     end
   end
-  
+
   def self.configure_sharded_collections(node, sharded_collections)
     # lazy require, to move loading this modules to runtime of the cookbook
     require 'rubygems'
     require 'mongo'
-    
+
     begin
       connection = Mongo::Connection.new('localhost', node['mongodb']['port'], :op_timeout => 5)
     rescue Exception => e
       Chef::Log.warn("Could not connect to database: 'localhost:#{node['mongodb']['port']}', reason #{e}")
       return
     end
-    
+
     admin = connection['admin']
-    
+
     databases = sharded_collections.keys.collect{ |x| x.split(".").first}.uniq
     Chef::Log.info("enable sharding for these databases: '#{databases.inspect}'")
-    
+
     databases.each do |db_name|
       cmd = BSON::OrderedHash.new
       cmd['enablesharding'] = db_name
@@ -304,7 +304,7 @@ class Chef::ResourceDefinitionList::MongoDB
         Chef::Log.info("Enabled sharding for database '#{db_name}'")
       end
     end
-    
+
     sharded_collections.each do |name, key|
       cmd = BSON::OrderedHash.new
       cmd['shardcollection'] = name
@@ -327,7 +327,7 @@ class Chef::ResourceDefinitionList::MongoDB
         Chef::Log.info("Sharding for collection '#{result['collectionsharded']}' enabled")
       end
     end
-  
+
   end
-  
+
 end

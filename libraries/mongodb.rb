@@ -42,7 +42,7 @@ class Chef::ResourceDefinitionList::MongoDB
         abort("Cannot configure replicaset '#{name}', no member nodes found, I am a chef solo")
       end
 
-      members << node unless members.include?(node)
+      members << node unless members.any? {|m| m.name == node.name }
     end
 
     host_members = members.collect{ |m| m['fqdn'] + ":" + node['mongodb']['port'].to_s }

@@ -155,6 +155,7 @@ class Chef::ResourceDefinitionList::MongoDB
         Chef::Log.info(n)
         if members[n]['fqdn'] == node['fqdn'] && members[n]['mongodb']['replicaset_member_id'] == nil
           rs_members << {"_id" => max_id, "host" => "#{node['fqdn']}:#{node['mongodb']['port']}"}
+          max_id += 1 # TODO: extract method 'claim_next_id'
         elsif members[n]['mongodb']['replicaset_member_id'] != nil
           rs_members << {"_id" => members[n]['mongodb']['replicaset_member_id'], "host" => "#{members[n]['fqdn']}:#{members[n]['mongodb']['port']}"}
         end
